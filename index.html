@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vote for Vikas Boss</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Trebuchet MS', Arial, sans-serif;
+      background: linear-gradient(135deg, #f8fafc, #dbeafe);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .popup {
+      background: white;
+      border: 4px solid #1e3a8a;
+      border-radius: 28px;
+      padding: 42px 56px;
+      text-align: center;
+      box-shadow: 0 14px 30px rgba(30, 58, 138, 0.18);
+      animation: popIn 0.5s ease-out, float 2.2s ease-in-out infinite alternate;
+      max-width: 560px;
+    }
+
+    .cartoon {
+      font-size: 4rem;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e0ecff;
+      color: #1e40af;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      color: #1e3a8a;
+      margin: 0 0 10px 0;
+    }
+
+    p {
+      font-size: 1.15rem;
+      color: #334155;
+      margin: 0;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes float {
+      from { transform: translateY(0px); }
+      to { transform: translateY(-8px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="popup">
+    <div class="cartoon">🎓🗳️✨</div>
+    <div class="badge">Alumni Elections 2026</div>
+    <h1>Vote for Vikas Boss</h1>
+    <p>Candidate for Vice President</p>
+  </div>
+
+  
+</body>
+</html>
