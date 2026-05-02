@@ -1,79 +1,178 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vote for Vikas Boss</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Trebuchet MS', Arial, sans-serif;
-      background: linear-gradient(135deg, #f8fafc, #dbeafe);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .popup {
-      background: white;
-      border: 4px solid #1e3a8a;
-      border-radius: 28px;
-      padding: 42px 56px;
-      text-align: center;
-      box-shadow: 0 14px 30px rgba(30, 58, 138, 0.18);
-      animation: popIn 0.5s ease-out, float 2.2s ease-in-out infinite alternate;
-      max-width: 560px;
-    }
-
-    .cartoon {
-      font-size: 4rem;
-      margin-bottom: 14px;
-    }
-
-    .badge {
-      display: inline-block;
-      background: #e0ecff;
-      color: #1e40af;
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: bold;
-      margin-bottom: 18px;
-    }
-
-    h1 {
-      font-size: 2.4rem;
-      color: #1e3a8a;
-      margin: 0 0 10px 0;
-    }
-
-    p {
-      font-size: 1.15rem;
-      color: #334155;
-      margin: 0;
-    }
-
-    @keyframes popIn {
-      from { transform: scale(0.7); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    @keyframes float {
-      from { transform: translateY(0px); }
-      to { transform: translateY(-8px); }
-    }
-  </style>
+    <title>Voting Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
-<body>
-  <div class="popup">
-    <div class="cartoon">🎓🗳️✨</div>
-    <div class="badge">Alumni Elections 2026</div>
-    <h1>Vote for Vikas Boss</h1>
-    <p>Candidate for Vice President</p>
-  </div>
 
-  
+<body style="font-family: Arial; text-align:center; padding:20px; margin:0; background:#f8fafc;">
+
+    <h1>Voting Dashboard</h1>
+
+    <div style="margin-bottom: 20px;">
+        <button onclick="runAnalysis()"
+            style="padding:15px 30px; font-size:18px; background:#16a34a; color:white; border:none; border-radius:10px; cursor:pointer;">
+            🚀 RUN ANALYSIS
+        </button>
+
+        <!-- New Download Button -->
+        <button id="downloadBtn" onclick="downloadCSV()" disabled
+            style="padding:15px 30px; font-size:18px; background:#64748b; color:white; border:none; border-radius:10px; cursor:not-allowed; margin-left:10px;">
+            📥 DOWNLOAD Tentative List of Voters
+        </button>
+    </div>
+
+    <p id="loading" style="display:none; font-weight:bold; color:#2563eb;">
+        Loading data...
+    </p>
+
+    <div style="width:95%; max-width:1400px; margin:auto;">
+        <canvas id="chart" style="width:100%; height:500px;"></canvas>
+    </div>
+
+    <div style="margin-top: 30px; overflow-x: auto;">
+        <table id="summaryTable" style="margin: auto; border-collapse: collapse; width: 90%; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <thead style="background: #e2e8f0;">
+                <tr>
+                    <th style="padding:12px;">Batch</th>
+                    <th style="padding:12px;">Registered</th>
+                    <th style="padding:12px;">Voted</th>
+                    <th style="padding:12px;">Turnout %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+<script>
+let cachedData = null; // Store data globally for the download function
+
+async function runAnalysis() {
+    const loadingEl = document.getElementById("loading");
+    const downloadBtn = document.getElementById("downloadBtn");
+    loadingEl.style.display = "block";
+
+    try {
+        const response = await fetch("https://evotingzone.mistpl.com/api/index.php/users/results");
+        cachedData = await response.json(); // Save to global variable
+
+        let registeredMap = {};
+        try {
+            const csvResponse = await fetch("batch_counts.csv");
+            if (csvResponse.ok) {
+                const csvText = await csvResponse.text();
+                const rows = csvText.trim().split("\n").slice(1);
+                rows.forEach(row => {
+                    const [year, total] = row.split(",");
+                    if(year) registeredMap[year.trim()] = Number(total.trim());
+                });
+            }
+        } catch (csvErr) {
+            console.warn("CSV file not found, continuing without registration data.");
+        }
+
+        const votes = cachedData.Votes_By_Batch.sort((a, b) => Number(a.batch) - Number(b.batch));
+
+        const labels = votes.map(x => x.batch);
+        const votedValues = votes.map(x => Number(x.vote_count));
+        const registeredValues = votes.map(x => registeredMap[x.batch] || 0);
+        const turnoutValues = votes.map(x => {
+            const reg = registeredMap[x.batch] || 0;
+            return reg > 0 ? ((Number(x.vote_count) / reg) * 100).toFixed(1) : "0.0";
+        });
+
+        // Render Chart
+        Chart.register(ChartDataLabels);
+        if (window.myChart) window.myChart.destroy();
+
+        window.myChart = new Chart(document.getElementById("chart"), {
+    type: "bar",
+    data: {
+        labels: labels,
+        datasets: [{
+            label: "Votes Cast",
+            data: votedValues,
+            backgroundColor: '#3b82f6',
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            datalabels: { 
+                anchor: 'end', 
+                align: 'top', 
+                color: '#1e293b', 
+                font: { weight: 'bold', size: 10 } 
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    autoSkip: false, // THIS FORCES EVERY LABEL TO SHOW
+                    maxRotation: 90, // Rotates them so they fit better
+                    minRotation: 45,
+                    font: {
+                        size: 11 // Adjust size if they look too cramped
+                    }
+                },
+                grid: {
+                    display: false // Optional: cleans up the look
+                }
+            },
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Votes'
+                }
+            }
+        }
+    }
+});
+        // Update Table
+        const tableBody = document.querySelector("#summaryTable tbody");
+        if (tableBody) {
+            tableBody.innerHTML = labels.map((label, i) => `
+                <tr style="border-bottom:1px solid #edf2f7;">
+                    <td style="padding:10px;">${label}</td>
+                    <td style="padding:10px;">${registeredValues[i]}</td>
+                    <td style="padding:10px;">${votedValues[i]}</td>
+                    <td style="padding:10px;">${turnoutValues[i]}%</td>
+                </tr>
+            `).join('');
+        }
+
+        // Enable Download Button
+        downloadBtn.disabled = false;
+        downloadBtn.style.background = "#2563eb";
+        downloadBtn.style.cursor = "pointer";
+
+    } catch (error) {
+        alert("Error loading data: " + error.message);
+    } finally {
+        loadingEl.style.display = "none";
+    }
+}
+
+// Function triggered by the new button
+function downloadCSV() {
+    if (!cachedData || !cachedData.OTP_detail) {
+        alert("No data available to download. Run analysis first.");
+        return;
+    }
+
+    const names = cachedData.OTP_detail.map(x => x.name);
+    const csvContent = "name\n" + names.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "voter_names.csv";
+    link.click();
+}
+</script>
+
 </body>
 </html>
